@@ -6,7 +6,7 @@ pipeline {
         maven 'my-maven'
     }
     stages{
-        stage('0. 자동화 연결확인'){
+        stage('0. 자동화 연결확인 2'){
             steps {
                 echo '스테이지 출발'
                 }
