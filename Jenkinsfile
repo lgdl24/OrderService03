@@ -59,4 +59,9 @@ pipeline {
             }
         }
     }
+    stage('빌드 결과 확인') {
+        steps {
+            sh 'ls -lh target/'
+        }
+    }
 }
