@@ -1,134 +1,64 @@
 pipeline {
     agent any
 
-    tools {
+    tools{
         maven 'my-maven'
     }
 
+    environment {
+        APP_NAME = 'order-service03-app'
+        DOCKER_TAG = 'latest'
+        IMAGE_NAME = "lgdl23/${APP_NAME}:${DOCKER_TAG}"
+        TARGET_HOST = '192.168.56.107'
+        TARGET_USER = 'vagrant'
+        PORT = '8081'
+    }
     stages {
+        stage('0. 자동화2 연결 확인') { steps { echo '스테이지 출발' } }
 
-        stage('0. 자동화 연결 확인') {
-            steps {
-                echo 'Jenkins 자동화 연결 성공'
-            }
-        }
-
-        stage('1. Java 빌드') {
-            steps {
-                echo 'Maven 빌드 시작'
-
+        stage('1. 자바빌드'){
+            steps{
+                echo '메이븐으로 빌드 시작'
                 sh 'mvn clean package'
-
-                echo 'Maven 빌드 완료'
             }
         }
-
-        stage('2. 빌드 결과 확인') {
+        stage('2. Check Docker') {
             steps {
-                sh 'ls -lh target/'
+                sh 'docker version'
             }
         }
-
-        stage('3. Docker 권한 확인') {
+        stage('3. Docker Build') {
             steps {
-                sh '''
-                    whoami
-                    id
-                    docker --version
-                    docker ps
-                '''
+                sh 'docker build -t order-service03-app:latest .'
             }
         }
-
-        stage('4. Docker 이미지 빌드') {
+        stage('4. Docker Push') {
             steps {
-                echo 'Docker 이미지 빌드 시작'
-
-                sh '''
-                    docker build \
-                    -t lgdl23/order-service:latest \
-                    .
-                '''
-
-                echo 'Docker 이미지 빌드 완료'
-            }
-        }
-
-        stage('5. Docker Hub 로그인 및 Push') {
-            steps {
-
-                withCredentials([
-                        usernamePassword(
-                                credentialsId: 'dockerhub',
-                                usernameVariable: 'DOCKER_USERNAME',
-                                passwordVariable: 'DOCKER_PASSWORD'
-                        )
-                ]) {
-
+                withCredentials([usernamePassword(
+                        credentialsId: 'dockerhub-cred',
+                        usernameVariable: 'DOCKERHUB_USERNAME',
+                        passwordVariable: 'DOCKERHUB_PASSWORD'
+                )]) {
                     sh '''
-                        echo "$DOCKER_PASSWORD" | docker login \
-                            -u "$DOCKER_USERNAME" \
-                            --password-stdin
-
-                        docker push lgdl23/order-service:latest
-
-                        docker logout
+                    echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+                    docker tag order-service03-app:latest $DOCKERHUB_USERNAME/order-service03-app:latest
+                    docker push $DOCKERHUB_USERNAME/order-service03-app:latest
                     '''
                 }
-
-                echo 'Docker Hub Push 완료'
             }
         }
-
-        stage('6. 기존 컨테이너 제거') {
+        stage('5. Deploy to vm7') {
             steps {
                 sh '''
-                    docker stop order-service || true
-                    docker rm order-service || true
+                    ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_HOST <<EOF
+                        # 이미지 pull 실패 시 즉시 스크립트 종료
+                        docker pull $IMAGE_NAME || exit 1
+                        # 기존 컨테이너 제거, 없을 경우 에러 무시
+                        docker rm -f $APP_NAME 2>/dev/null || true
+                        docker run -d -p $PORT:$PORT --name $APP_NAME $IMAGE_NAME
+EOF
                 '''
             }
-        }
-
-        stage('7. Docker 컨테이너 실행') {
-            steps {
-                echo 'Docker 컨테이너 실행'
-
-                sh '''
-                    docker run -d \
-                    --name order-service \
-                    -p 8082:8080 \
-                    lgdl23/order-service:latest
-                '''
-            }
-        }
-
-        stage('8. 배포 확인') {
-            steps {
-                sh '''
-                    echo "=== 실행 중인 컨테이너 ==="
-                    docker ps
-
-                    echo "=== Docker 이미지 ==="
-                    docker images | grep order-service
-                '''
-            }
-        }
-    }
-
-    post {
-
-        success {
-            echo '======================================'
-            echo '배포 성공!'
-            echo 'Docker Hub Push 및 컨테이너 실행 완료'
-            echo '======================================'
-        }
-
-        failure {
-            echo '======================================'
-            echo '배포 실패'
-            echo 'Jenkins Console Output을 확인하세요.'
-            echo '======================================'
         }
     }
 }
