@@ -45,10 +45,10 @@ pipeline {
                 echo 'Docker 이미지 빌드 시작'
 
                 sh '''
-            docker build \
-            -t lgdl23/order-service:latest \
-            .
-        '''
+                    docker build \
+                    -t lgdl23/order-service:latest \
+                    .
+                '''
 
                 echo 'Docker 이미지 빌드 완료'
             }
@@ -56,6 +56,7 @@ pipeline {
 
         stage('5. Docker Hub 로그인 및 Push') {
             steps {
+
                 withCredentials([
                         usernamePassword(
                                 credentialsId: 'dockerhub',
@@ -63,16 +64,19 @@ pipeline {
                                 passwordVariable: 'DOCKER_PASSWORD'
                         )
                 ]) {
+
                     sh '''
-                echo "$DOCKER_PASSWORD" | docker login \
-                    -u "$DOCKER_USERNAME" \
-                    --password-stdin
+                        echo "$DOCKER_PASSWORD" | docker login \
+                            -u "$DOCKER_USERNAME" \
+                            --password-stdin
 
-                docker push lgdl23/order-service:latest
+                        docker push lgdl23/order-service:latest
 
-                docker logout
-            '''
+                        docker logout
+                    '''
                 }
+
+                echo 'Docker Hub Push 완료'
             }
         }
 
@@ -90,18 +94,21 @@ pipeline {
                 echo 'Docker 컨테이너 실행'
 
                 sh '''
-            docker run -d \
-            --name order-service \
-            -p 8082:8080 \
-            lgdl23/order-service:latest
-        '''
+                    docker run -d \
+                    --name order-service \
+                    -p 8082:8080 \
+                    lgdl23/order-service:latest
+                '''
             }
         }
 
         stage('8. 배포 확인') {
             steps {
                 sh '''
+                    echo "=== 실행 중인 컨테이너 ==="
                     docker ps
+
+                    echo "=== Docker 이미지 ==="
                     docker images | grep order-service
                 '''
             }
@@ -109,6 +116,7 @@ pipeline {
     }
 
     post {
+
         success {
             echo '======================================'
             echo '배포 성공!'
