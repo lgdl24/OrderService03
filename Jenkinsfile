@@ -45,10 +45,10 @@ pipeline {
                 echo 'Docker 이미지 빌드 시작'
 
                 sh '''
-                    docker build \
-                    -t YOUR_DOCKERHUB_ID/order-service:latest \
-                    .
-                '''
+            docker build \
+            -t lgdl23/order-service:latest \
+            .
+        '''
 
                 echo 'Docker 이미지 빌드 완료'
             }
@@ -64,17 +64,15 @@ pipeline {
                         )
                 ]) {
                     sh '''
-                        echo "$DOCKER_PASSWORD" | docker login \
-                            -u "$DOCKER_USERNAME" \
-                            --password-stdin
+                echo "$DOCKER_PASSWORD" | docker login \
+                    -u "$DOCKER_USERNAME" \
+                    --password-stdin
 
-                        docker push YOUR_DOCKERHUB_ID/order-service:latest
+                docker push lgdl23/order-service:latest
 
-                        docker logout
-                    '''
+                docker logout
+            '''
                 }
-
-                echo 'Docker Hub Push 완료'
             }
         }
 
@@ -92,11 +90,11 @@ pipeline {
                 echo 'Docker 컨테이너 실행'
 
                 sh '''
-                    docker run -d \
-                    --name order-service \
-                    -p 8082:8080 \
-                    YOUR_DOCKERHUB_ID/order-service:latest
-                '''
+            docker run -d \
+            --name order-service \
+            -p 8082:8080 \
+            lgdl23/order-service:latest
+        '''
             }
         }
 
