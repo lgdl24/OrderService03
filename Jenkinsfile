@@ -19,17 +19,7 @@ pipeline {
                 sh 'mvn clean package'
             }
         }
-        stage('Docker 권한 확인') {
-            steps {
-                sh '''
-            whoami
-            id
-            groups
-            ls -l /var/run/docker.sock
-            docker ps
-        '''
-            }
-        }
+
 
         stage('2. Docker 이미지 빌드') {
             steps {
@@ -51,9 +41,9 @@ pipeline {
             steps {
                 echo 'Docker 컨테이너 실행'
                 sh '''
-                    docker run -d \
-                    --name order-service \
-                    -p 8080:8080 \
+                    docker run -d \\
+                    --name order-service \\
+                    -p 8082:8080 \\
                     order-service:latest
                 '''
             }
