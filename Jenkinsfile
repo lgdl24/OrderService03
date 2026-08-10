@@ -19,6 +19,17 @@ pipeline {
                 sh 'mvn clean package'
             }
         }
+        stage('Docker 권한 확인') {
+            steps {
+                sh '''
+            whoami
+            id
+            groups
+            ls -l /var/run/docker.sock
+            docker ps
+        '''
+            }
+        }
 
         stage('2. Docker 이미지 빌드') {
             steps {
